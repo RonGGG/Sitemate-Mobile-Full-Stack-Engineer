@@ -54,26 +54,27 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import axios from "axios";
+import { SearchBar } from 'react-native-elements';
 
 export default function App() {
 
   const [query, setQuery] = useState("");
+  const [search, setSearch] = useState('');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const API_KEY = '183daca270264bad86fc5b72972fb82a';
+
   const searchNews = async () => {
+    
     if (!query) return;
     
     setLoading(true);
     
     try {
-      const response = await axios.get("https://newsapi.org/v2/everything?q=Apple&from=2024-06-18&sortBy=popularity&apiKey=$(API_KEY)", {
-        params: {
-          q: query,
-          apiKey: "183daca270264bad86fc5b72972fb82a",
-        },
-      });
+      const response = await axios.get(`https://newsapi.org/v2/everything?q=${query}&apiKey=${API_KEY}`);
       setArticles(response.data.articles);
+      console.log(response.data.articles);
     } catch (error) {
       console.error(error);
     }
@@ -91,13 +92,14 @@ export default function App() {
           onChangeText={setQuery}
         />
         <Button title="Search" onPress={searchNews} />
-        {loading && <ActivityIndicator size="large" color="#0000ff" />}
+        {loading && <ActivityIndicator size="large" color="#777" />}
         <FlatList
           data={articles}
           keyExtractor={(item) => item.url}
           renderItem={({ item }) => (
             <View style={styles.article}>
               <Text style={styles.articleTitle}>{item.title}</Text>
+              <Text>{item.author}</Text>
               <Text>{item.description}</Text>
             </View>
           )}
