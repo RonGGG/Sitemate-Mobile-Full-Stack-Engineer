@@ -48,7 +48,7 @@ export default function App() {
         <TouchableOpacity style={styles.button} onPress={searchNews}>
           <Text style={styles.buttonText}>Search</Text>
         </TouchableOpacity>
-        {loading && <ActivityIndicator size="large" color="#0000ff" />}
+        {loading && <ActivityIndicator size="large" color="#777" />}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {articles.length === 0 && !loading && !error && (
           <View style={styles.placeholderContainer}>
