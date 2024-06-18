@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, FlatList, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TextInput, Button, FlatList, ActivityIndicator, TouchableOpacity, Image, ScrollView } from 'react-native';
 import axios from 'axios';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const [query, setQuery] = useState('');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
   const API_KEY = '183daca270264bad86fc5b72972fb82a';
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const saveHistory = async (searchQuery) => {
+    try {
+      const existingHistory = await AsyncStorage.getItem('searchHistory');
+      const searchHistory = existingHistory ? JSON.parse(existingHistory) : [];
+      if (!searchHistory.includes(searchQuery)) {
+        searchHistory.unshift(searchQuery);
+        await AsyncStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+      }
+      setHistory(searchHistory);
+    } catch (error) {
+      console.error('Failed to save history:', error);
+    }
+  };
+
+  const loadHistory = async () => {
+    try {
+      const existingHistory = await AsyncStorage.getItem('searchHistory');
+      if (existingHistory) {
+        setHistory(JSON.parse(existingHistory));
+      }
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      await AsyncStorage.removeItem('searchHistory');
+      setHistory([]);
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+    }
+  };
 
   const searchNews = async () => {
     if (!query) return;
@@ -17,12 +57,17 @@ export default function App() {
     try {
       const response = await axios.get(`https://newsapi.org/v2/everything?q=${query}&apiKey=${API_KEY}`);
       setArticles(response.data.articles);
+      saveHistory(query);
     } catch (error) {
       setError('Failed to fetch news articles. Please try again later.');
     }
     setLoading(false);
   };
 
+  const handleHistorySearch = (searchQuery) => {
+    setQuery(searchQuery);
+    searchNews();
+  };
   const clearQuery = () => {
     setQuery('');
     setArticles([]);
@@ -55,6 +100,19 @@ export default function App() {
             <Text style={styles.placeholderText}>No articles found. Try searching for something else.</Text>
           </View>
         )}
+        <ScrollView style={styles.historyContainer}>
+          <Text style={styles.historyTitle}>Search History</Text>
+          {history.map((item, index) => (
+            <TouchableOpacity key={index} onPress={() => handleHistorySearch(item)}>
+              <Text style={styles.historyItem}>{item}</Text>
+            </TouchableOpacity>
+          ))}
+          {history.length > 0 && (
+            <TouchableOpacity style={styles.clearHistoryButton} onPress={clearHistory}>
+              <Text style={styles.clearHistoryButtonText}>Clear History</Text>
+            </TouchableOpacity>
+          )}
+        </ScrollView>
         <FlatList
           data={articles}
           keyExtractor={(item) => item.url}
@@ -137,6 +195,32 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  historyContainer: {
+
+  },
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  historyItem: {
+    fontSize: 16,
+    color: '#007BFF',
+    marginBottom: 5,
+  },
+  clearHistoryButton: {
+    marginTop: 25,
+    backgroundColor: '#FF6347',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearHistoryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   article: {
     padding: 15,
